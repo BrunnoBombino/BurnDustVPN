@@ -72,6 +72,28 @@ class API:
             print(f"💥 Ошибка парсинга JSON со списком инбаундов: {e}")
             return {"success": False, "msg": "Ошибка декодирования JSON"}
 
+    def get_inbound_id_by_remark(self, remark: str) -> int | None:
+        """
+        Ищет ID инбаунда по его названию (remark).
+        Возвращает ID (int) в случае успеха или None, если инбаунд не найден.
+        """
+        data = self.users()
+
+        if not data or not data.get("success"):
+            print(f"⚠️ Не удалось получить список инбаундов для поиска remark '{remark}'")
+            return None
+
+        # Обходим список всех инбаундов в ключе 'obj'
+        for inbound in data.get("obj", []):
+            if inbound.get("remark") == remark:
+                return inbound.get("id")
+
+        print(f"🔍 Инбаунд с названием '{remark}' не найден.")
+        return None
+
+
+
+
 
 if __name__ == "__main__":
     api = API()
