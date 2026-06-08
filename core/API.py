@@ -58,7 +58,7 @@ class API:
 
             # Проверка прав доступа
             if response.status_code in (401, 403):
-                print("❌ Ошибка: Панель отклонила API токен. Проверьте auth.py.")
+                print("❌ Ошибка: Панель отклонила API токен. Проверьте API_TOKEN.")
                 return {"success": False, "msg": f"Ошибка авторизации (Статус {response.status_code})"}
 
             if response.status_code != 200:
