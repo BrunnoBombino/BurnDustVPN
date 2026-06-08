@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="44aaaee9-a19f-4b6e-876a-6efec87b381c" name="Changes" comment="create project">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/API.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/API.py" afterDir="false" />
+    <list default="true" id="44aaaee9-a19f-4b6e-876a-6efec87b381c" name="Changes" comment="Create API methods">
       <change beforePath="$PROJECT_DIR$/core/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/auth.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -128,7 +126,23 @@
       <option name="project" value="LOCAL" />
       <updated>1780854263178</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Create API methods">
+      <option name="closed" value="true" />
+      <created>1780926600461</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1780926600461</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Create API methods">
+      <option name="closed" value="true" />
+      <created>1780926735039</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1780926735039</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -136,6 +150,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="create project" />
-    <option name="LAST_COMMIT_MESSAGE" value="create project" />
+    <MESSAGE value="Create API methods" />
+    <option name="LAST_COMMIT_MESSAGE" value="Create API methods" />
   </component>
 </project>
