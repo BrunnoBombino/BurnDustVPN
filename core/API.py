@@ -15,25 +15,20 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class API:
     def __init__(self, cookie_file="session_cookies.pkl") -> None:
-        # 1. Инициализируем объект сессии requests
+        # Инициализируем объект сессии requests
         self.ses = requests.Session()
 
         # Определяем корень проекта (поднимаемся на 1 уровень вверх из папки core)
         self.base_dir = Path(__file__).resolve().parent.parent
         # Делаем путь к файлу бэкапа абсолютным относительно корня проекта
         self.backup_path = self.base_dir / "backup_lost_users.txt"
-        # То же самое для кук, чтобы они тоже лежали в корне
-        self.cookie_path = self.base_dir / cookie_file
 
         self.host = auth.HOST
         self.API_TOKEN = auth.API_TOKEN
 
 
     def connect(self) -> bool:
-        """Для новых версий с API токеном полноценный логин не нужен.
-        Просто прописываем токен авторизации в сессию."""
         if hasattr(auth, 'API_TOKEN') and self.API_TOKEN:
-            # Устанавливаем заголовок авторизации для ВСЕХ последующих запросов сессии
             self.ses.headers.update({"Authorization": f"Bearer {self.API_TOKEN}"})
             return True
         return False
