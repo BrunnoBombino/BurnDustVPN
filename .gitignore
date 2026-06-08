@@ -6,3 +6,4 @@ backup_lost_users.txt
 users.db
 tests.py
 promocodes.json
+.gitignore
