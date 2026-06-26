@@ -67,7 +67,7 @@
     "nodejs_package_manager_path": "npm"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.xui_client">
+  <component name="RunManager" selected="Python.xuiclient">
     <configuration name="auth" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="BurnDustVPN" />
       <option name="ENV_FILES" value="" />
@@ -92,7 +92,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="xui_client" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="xuiclient" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="BurnDustVPN" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -107,7 +107,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="DEBUG_JUST_MY_CODE" value="false" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="D:\PythonProject\BurnDustVPN\core\xui_client.py" />
+      <option name="SCRIPT_NAME" value="D:\PythonProject\BurnDustVPN\core\xuiclient.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -118,7 +118,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.xui_client" />
+        <item itemvalue="Python.xuiclient" />
         <item itemvalue="Python.auth" />
       </list>
     </recent_temporary>

@@ -2,8 +2,10 @@
 import uuid
 import secrets
 from sqlalchemy.orm import Session
-from database import Node, Connection  # Импортируем твои модели из database.py
-from xui_client import XUIClient  # Импортируем клиент к панели
+
+# Теперь импортируем с указанием папки core
+from core.database import Node, Connection
+from core.xuiclient import XUIClient
 
 
 def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
