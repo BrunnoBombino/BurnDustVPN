@@ -46,47 +46,16 @@ class XUIClient:
         res = self._make_request("GET", f"/panel/api/inbounds/get/{inbound_id}")
         return res
 
-    def generate_vless_link(self, inbound_id: int, client_uuid: str, client_email: str) -> str | None:
+    def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         """
-        Автоматически собирает vless:// ссылку для Reality
+        Моментально собирает vless ссылку на основе данных из нашей БД нод.
         """
-        inbound_data = self.get_inbound_status(inbound_id)
-        if not inbound_data or not inbound_data.get("success"):
-            print("❌ Не удалось получить данные инбаунда для сборки ссылки")
-            return None
-
-        obj = inbound_data.get("obj", {})
-        port = obj.get("port")
-        remark = obj.get("remark", "VPN")
-
-        # Десериализуем streamSettings, так как 3x-ui хранит их строкой внутри JSON
-        stream_settings = json.loads(obj.get("streamSettings", "{}"))
-
-        # Вытаскиваем параметры Reality
-        reality_settings = stream_settings.get("realitySettings", {})
-        server_names = reality_settings.get("serverNames", ["google.com"])
-        sni = server_names[0] if server_names else "google.com"
-
-        # Публичный ключ и shortId лежат внутри приватных настроек инбаунда
-        settings = json.loads(obj.get("settings", "{}"))
-        # Нам нужен publicKey, его можно забрать из базы или передавать константой,
-        # но в последних версиях 3x-ui его можно выудить из streamSettings
-        ext_settings = stream_settings.get("externalProxy", [])  # или из полей панели
-
-        # ВАЖНО: Так как publicKey генерируется при создании инбаунда,
-        # проще всего один раз сохранить его настройки в твою БД нод.
-        # Но если мы берем напрямую из панели (для Reality):
-        private_key_list = reality_settings.get("shortIds", [""])
-        short_id = private_key_list[0] if private_key_list else ""
-        pub_key = reality_settings.get("settings", {}).get("publicKey", "")
-
-        # Если панель не отдала pub_key через этот эндпоинт (зависит от версии),
-        # то надежнее передавать параметры сети ноды из твоей БД.
-        # Шаблон VLESS Reality строки:
-        # vless://UUID@IP:PORT?encryption=none&flow=xtls-rprx-vision&security=reality&sni=SNI&fp=chrome&pbk=PUBLIC_KEY&sid=SHORT_ID#REMARK
-
-        # Для примера, вот сборка строки:
-        link = f"vless://{client_uuid}@{self.public_ip}:{port}?encryption=none&flow=xtls-rprx-vision&security=reality&sni={sni}&fp=chrome&pbk={pub_key}&sid={short_id}#{remark}-{client_email}"
+        link = (
+            f"vless://{client_uuid}@{node.public_ip}:{node.vless_port}"
+            f"?encryption=none&flow=xtls-rprx-vision&security=reality"
+            f"&sni={node.sni}&fp=chrome&pbk={node.public_key}&sid={node.short_id}"
+            f"#{node.name}-{client_email}"
+        )
         return link
 
     def add_client(self, inbound_id: int, client_email: str, client_uuid: str, limit_gb: int = 0,
