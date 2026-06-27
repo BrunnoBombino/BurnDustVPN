@@ -4,6 +4,9 @@ import urllib3
 from pathlib import Path
 from requests import RequestException, Session
 
+from core.config import VPNConfig
+from core.endpoints import XUIClientsEndpoints
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -66,6 +69,10 @@ class XUIClient:
         # Переводим ГБ в байты
         total_gb_bytes = limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0
 
+        inbound = self._find_inbound_by_id(inbound_id)# Решаем, нужен ли flow
+        flow_value = VPNConfig.DEFAULT_FLOW if inbound['protocol'] == 'vless' else ""
+
+
         # Строгое соответствие ожидаемой структуре панели
         payload = {
             "client": {
@@ -74,16 +81,16 @@ class XUIClient:
                 "totalGB": total_gb_bytes,
                 "expiryTime": 0,  # 0 - без лимита по времени
                 "tgId": 0,  # Integer
-                "limitIp": 0,
+                "limitIp": VPNConfig.DEFAULT_LIMIT_IP,
                 "enable": True,
-                "flow": "xtls-rprx-vision"  # Обязательно для VLESS-Reality
+                "flow": flow_value
             },
             "inboundIds": [
                 inbound_id
             ]
         }
 
-        return self._make_request("POST", "/panel/api/clients/add", json_data=payload)
+        return self._make_request("POST", XUIClientsEndpoints.ADD_CLIENT, json_data=payload)
 
     def delete_client(self, inbound_id: int, client_uuid: str) -> dict:
         """

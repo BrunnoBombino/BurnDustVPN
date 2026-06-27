@@ -1,7 +1,6 @@
 class XUIInboundEndpoints:
     INBOUNDS_LIST = "/panel/api/inbounds/list"
 
-
 class XUIClientsEndpoints:
     ADD_CLIENT = "/panel/api/clients/add"
     GET_TRAFFIC = "/panel/api/clients/traffic/{email}"
