@@ -20,7 +20,6 @@ def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         f"#{node.name}-{client_email}"
     )
 
-
 def update_nodes_from_master(db: Session, master_client) -> None:
     """
     Запрашивает у Мастер-панели актуальное состояние всех нод
@@ -42,7 +41,6 @@ def update_nodes_from_master(db: Session, master_client) -> None:
             db_node.is_active = node_data.get("status", True)
 
     db.commit()
-
 
 def create_new_user_vpn_key(db: Session, user_id: int, master_node_id: int = 1) -> dict:
     """
@@ -90,7 +88,6 @@ def create_new_user_vpn_key(db: Session, user_id: int, master_node_id: int = 1) 
     vpn_link = generate_vless_link(best_node, client_uuid, client_email)
     return {"success": True, "link": vpn_link}
 
-
 def get_user_vless_links(db: Session, user_id: int) -> list:
     """
     Возвращает список всех активных ссылок (конфигов) пользователя,
@@ -111,7 +108,6 @@ def get_user_vless_links(db: Session, user_id: int) -> list:
 
     return links
 
-
 def hash_password(password: str) -> str:
     """Превращает пароль в безопасный хэш"""
     salt = bcrypt.gensalt()
@@ -120,7 +116,6 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверяет, подходит ли пароль к хэшу"""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-
 
 def create_user(db: Session, email: str, password: str) -> User | None:
     """Создает нового пользователя, если email свободен"""
@@ -137,7 +132,6 @@ def create_user(db: Session, email: str, password: str) -> User | None:
     db.commit()
     db.refresh(new_user)
     return new_user
-
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(days=30)) -> str:
     """Создает JWT токен для авторизации на сайте/в боте"""

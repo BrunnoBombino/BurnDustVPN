@@ -61,39 +61,29 @@ class XUIClient:
     def add_client(self, inbound_id: int, client_email: str, client_uuid: str, limit_gb: int = 0,
                    expiry_days: int = 0) -> dict:
         """
-        Добавляет нового пользователя (клиента) в существующий инбаунд.
-        :param inbound_id: ID инбаунда (например, твой VLESS под номером 1)
-        :param client_email: Уникальный email/логин внутри этого инбаунда (для идентификации)
-        :param client_uuid: Сгенерированный тобой UUID (строка)
-        :param limit_gb: Лимит трафика в Гигабайтах (0 — безлимит)
-        :param expiry_days: Через сколько дней отключить (0 — вечно)
+        Добавляет нового пользователя (клиента) в панель 3x-ui.
         """
-        # Переводим ГБ в байты (3x-ui считает в байтах)
+        # Переводим ГБ в байты
         total_gb_bytes = limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0
 
-        # Переводим дни в таймстамп миллисекунд (отрицательное значение в 3x-ui означает срок окончания)
-        # Если нужно задать точную дату, она передается как отрицательный timestamp в мс.
-        # Для простоты пока оставим 0 (без лимита по времени), сроки лучше контролировать на стороне нашей БД.
-
+        # Строгое соответствие ожидаемой структуре панели
         payload = {
-            "id": inbound_id,
-            "settings": json.dumps({
-                "clients": [
-                    {
-                        "id": client_uuid,
-                        "alterId": 0,
-                        "email": client_email,
-                        "limitIp": 2,  # Ограничение на 2 одновременных IP (на всякий случай)
-                        "totalGB": total_gb_bytes,
-                        "expiryTime": 0,
-                        "enable": True,
-                        "flow": "xtls-rprx-vision"  # Оставь пустым "", если используешь не VLESS-Reality
-                    }
-                ]
-            })
+            "client": {
+                "id": client_uuid,  # Уникальный UUID для подключения
+                "email": client_email,  # Имя клиента в панели
+                "totalGB": total_gb_bytes,
+                "expiryTime": 0,  # 0 - без лимита по времени
+                "tgId": 0,  # Integer
+                "limitIp": 0,
+                "enable": True,
+                "flow": "xtls-rprx-vision"  # Обязательно для VLESS-Reality
+            },
+            "inboundIds": [
+                inbound_id
+            ]
         }
 
-        return self._make_request("POST", "/panel/api/inbounds/addClient", json_data=payload)
+        return self._make_request("POST", "/panel/api/clients/add", json_data=payload)
 
     def delete_client(self, inbound_id: int, client_uuid: str) -> dict:
         """
@@ -126,12 +116,12 @@ class XUIClient:
 
     def get_client_traffic(self, client_email: str) -> dict:
         """
-        Получить статистику трафика конкретного клиента по его email.
-        Возвращает скачано/загружено.
+        Получает статистику трафика конкретного клиента по его email.
         """
-        # Эндпоинт для получения статы одиночного клиента
-        return self._make_request("POST", f"/panel/api/inbounds/getClientTraffics/{client_email}")
 
+        endpoint = f"/panel/api/clients/traffic/{client_email}"
+
+        return self._make_request("GET", endpoint)
 
 
 
