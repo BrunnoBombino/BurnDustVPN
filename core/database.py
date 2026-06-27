@@ -1,4 +1,3 @@
-# core/database.py
 from datetime import datetime, timezone
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Float
@@ -65,7 +64,7 @@ class Connection(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="connections")
-    node = relationship("Node", back_populates="node")
+    node = relationship("Node", back_populates="connections")
 
 
 # 3. Вспомогательная функция (Dependency) для FastAPI

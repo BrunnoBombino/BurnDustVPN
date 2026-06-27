@@ -1,8 +1,14 @@
-# core/services.py
 import uuid
 import secrets
 from sqlalchemy.orm import Session
 from core.database import Node, Connection
+import bcrypt
+import jwt
+from datetime import datetime, timezone, timedelta
+from core.database import User
+
+SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME" # В будущем вынесем в auth.py
+ALGORITHM = "HS256"
 
 
 def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
@@ -104,3 +110,38 @@ def get_user_vless_links(db: Session, user_id: int) -> list:
             links.append(link)
 
     return links
+
+
+def hash_password(password: str) -> str:
+    """Превращает пароль в безопасный хэш"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Проверяет, подходит ли пароль к хэшу"""
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+
+def create_user(db: Session, email: str, password: str) -> User | None:
+    """Создает нового пользователя, если email свободен"""
+    # Проверяем, нет ли уже такого email в БД
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        return None
+
+    new_user = User(
+        email=email,
+        password_hash=hash_password(password)
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(days=30)) -> str:
+    """Создает JWT токен для авторизации на сайте/в боте"""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
