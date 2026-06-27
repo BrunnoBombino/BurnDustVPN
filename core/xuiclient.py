@@ -44,6 +44,25 @@ class XUIClient:
         """Получить список всех инбаундов (протоколов/портов) на этой ноде"""
         return self._make_request("GET", "/panel/api/inbounds/list")
 
+    def get_inbound_by_id(self, inbound_id: int) -> dict:
+        """
+        Ищет инбаунд в списке по его ID.
+        Возвращает словарь с настройками инбаунда или None, если не найден.
+        """
+        response = self.get_inbounds()  # Используем уже написанный метод
+
+        if not response.get("success"):
+            return None
+
+        inbounds = response.get("obj", [])
+
+        # Перебираем список и ищем совпадение
+        for inbound in inbounds:
+            if inbound.get("id") == inbound_id:
+                return inbound
+
+        return None
+
     def get_inbound_status(self, inbound_id: int) -> dict:
         """Получить настройки конкретного инбаунда (нужно для вытаскивания ключей Reality)"""
         res = self._make_request("GET", f"/panel/api/inbounds/get/{inbound_id}")
@@ -61,33 +80,35 @@ class XUIClient:
         )
         return link
 
-    def add_client(self, inbound_id: int, client_email: str, client_uuid: str, limit_gb: int = 0,
-                   expiry_days: int = 0) -> dict:
-        """
-        Добавляет нового пользователя (клиента) в панель 3x-ui.
-        """
-        # Переводим ГБ в байты
+    def add_client(self, inbound_id: int, client_email: str, client_uuid: str,
+                   limit_gb: int = VPNConfig.DEFAULT_TOTAL_GB,
+                   expiry_time: int = VPNConfig.DEFAULT_EXPIRY_TIME) -> dict:
+
+        # 1. Получаем информацию об инбаунде для проверки протокола
+        inbound = self.get_inbound_by_id(inbound_id)
+        if not inbound:
+            return {"success": False, "msg": f"Inbound {inbound_id} not found"}
+
+        # 2. Определяем flow: используем дефолтный, если это VLESS
+        protocol = inbound.get("protocol")
+        flow = VPNConfig.DEFAULT_FLOW if protocol == "vless" else ""
+
+        # 3. Конвертация лимита (ГБ -> Байты)
         total_gb_bytes = limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0
 
-        inbound = self._find_inbound_by_id(inbound_id)# Решаем, нужен ли flow
-        flow_value = VPNConfig.DEFAULT_FLOW if inbound['protocol'] == 'vless' else ""
-
-
-        # Строгое соответствие ожидаемой структуре панели
+        # 4. Формируем тело запроса
         payload = {
             "client": {
-                "id": client_uuid,  # Уникальный UUID для подключения
-                "email": client_email,  # Имя клиента в панели
-                "totalGB": total_gb_bytes,
-                "expiryTime": 0,  # 0 - без лимита по времени
-                "tgId": 0,  # Integer
-                "limitIp": VPNConfig.DEFAULT_LIMIT_IP,
+                "id": client_uuid,
+                "email": client_email,
                 "enable": True,
-                "flow": flow_value
+                "totalGB": total_gb_bytes,
+                "expiryTime": expiry_time,
+                "tgId": 0,
+                "limitIp": VPNConfig.DEFAULT_LIMIT_IP,
+                "flow": flow
             },
-            "inboundIds": [
-                inbound_id
-            ]
+            "inboundIds": [inbound_id]
         }
 
         return self._make_request("POST", XUIClientsEndpoints.ADD_CLIENT, json_data=payload)
@@ -129,26 +150,4 @@ class XUIClient:
         endpoint = f"/panel/api/clients/traffic/{client_email}"
 
         return self._make_request("GET", endpoint)
-
-
-
-
-
-    # def users(self) -> dict:
-    #     """Получает список инбаундов."""
-    #     try:
-    #         # Больше не нужно вызывать connect(), хедер уже в сессии
-    #         url = f"{self.host}/panel/api/inbounds/list"
-    #         response = self.ses.get(url, timeout=10, verify=False)
-    #
-    #         if response.status_code in (401, 403):
-    #             return {"success": False, "msg": "Ошибка авторизации (Токен неверный)"}
-    #
-    #         if response.status_code != 200:
-    #             return {"success": False, "msg": f"Ошибка HTTP {response.status_code}"}
-    #
-    #         return response.json()
-    #     except requests.RequestException as e:
-    #         return {"success": False, "msg": f"Ошибка сети: {e}"}
-
 
