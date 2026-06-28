@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import uuid
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Float
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Float, BigInteger
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 # 1. Настройка подключения
@@ -18,11 +18,15 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    telegram_id = Column(Integer, unique=True, nullable=True, index=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=True)  # ID юзера в ТГ
+    username = Column(String, nullable=True)
+
+    # Токен для привязки аккаунта, если юзер пришел с сайта/админки
+    activation_token = Column(String, unique=True, nullable=True)
+
+    # Флаг админа
+    is_admin = Column(Boolean, default=False)
 
     connections = relationship("Connection", back_populates="user")
 
