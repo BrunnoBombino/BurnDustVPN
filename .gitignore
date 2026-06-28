@@ -1,9 +1,0 @@
-core/auth.py
-users.json
-.idea/
-database_test.db
-tests.py
-promocodes.json
-.gitignore
-.env
-.venv/

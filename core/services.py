@@ -20,9 +20,6 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME" # В будущем вынесем в auth.py
-ALGORITHM = "HS256"
-
 
 def get_xui_client_for_node(node: Node) -> XUIClient:
     return XUIClient(host=node.xui_host, token=node.xui_token)
