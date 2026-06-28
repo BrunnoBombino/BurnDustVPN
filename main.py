@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
 
 from core.database import init_db, get_db
-from core.services import create_user, verify_password, create_access_token, create_new_user_vpn_key
+from core.services import create_user, verify_password, create_access_token, create_new_user_vpn_key, \
+    delete_user_vpn_key
 import core.database as db_models
 
 @asynccontextmanager
@@ -82,6 +83,33 @@ def login(user_data: UserAuthSchema, db: Session = Depends(get_db)):
         "user": {"id": user.id, "email": user.email, "telegram_id": user.telegram_id}
     }
 
+
+@app.post("/vpn/create")
+def create_vpn(user_id: int, db: Session = Depends(get_db)):
+    result = create_new_user_vpn_key(db, user_id)
+
+    if not result["success"]:
+        # Если нода не найдена — это скорее 404 или 400
+        if "не найден" in result["msg"] or "Нет доступных" in result["msg"]:
+            raise HTTPException(status_code=400, detail=result["msg"])
+
+        # Если ошибка в API панели — это 500
+        raise HTTPException(status_code=500, detail=result["msg"])
+
+    return result
+
+
+@app.delete("/vpn/delete/{connection_id}")
+def delete_vpn(connection_id: int, db: Session = Depends(get_db)):
+    result = delete_user_vpn_key(db, connection_id)
+
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["msg"]
+        )
+
+    return {"message": "VPN ключ успешно удален"}
 
 # Временный тестовый эндпоинт для создания ключа (пока без проверки токена)
 @app.post("/api/vpn/create-key")

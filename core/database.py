@@ -32,23 +32,21 @@ class Node(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     guid = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, nullable=False)  # Например, "NodeFrance"
+    name = Column(String, nullable=False)
     xui_host = Column(String, nullable=False)
     xui_token = Column(String, nullable=False)
-
-    # Данные для генерации ссылки
-    public_ip = Column(String, nullable=False)
+    public_ip = Column(String, nullable=True, default="")
     vless_port = Column(Integer, nullable=False)
-    public_key = Column(String, nullable=False)
-    short_id = Column(String, nullable=False)
-    sni = Column(String, default="google.com")
-    inbound_id = Column(Integer, nullable=False)
+    public_key = Column(String, nullable=True, server_default="")
+    short_id = Column(String, nullable=True, default="")
+    sni = Column(String, nullable=True, default="google.com")
+    inbound_id = Column(Integer, nullable=True, default=0)
 
-    # Детальная балансировка и мониторинг
+    # Метрики
     is_active = Column(Boolean, default=True)
-    cpu_load = Column(Float, default=0.0)    # cpuPct из ответа Мастера
-    mem_load = Column(Float, default=0.0)    # memPct из ответа Мастера
-    latency = Column(Integer, default=0)     # latencyMs из ответа Мастера
+    cpu_load = Column(Float, default=0.0)
+    mem_load = Column(Float, default=0.0)
+    latency = Column(Integer, default=0)
 
     connections = relationship("Connection", back_populates="node")
 
@@ -58,6 +56,7 @@ class Connection(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     node_id = Column(Integer, ForeignKey("nodes.id"), nullable=False)
+    inbound_id = Column(Integer)
 
     client_uuid = Column(String, unique=True, default=lambda: str(uuid.uuid4()), nullable=False)
     client_email = Column(String, nullable=False)

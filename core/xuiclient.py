@@ -80,6 +80,14 @@ class XUIClient:
         )
         return link
 
+    def find_client_by_email(self, email: str) -> dict:
+        inbounds = self._make_request("GET", "/panel/api/inbounds/list")
+        for inbound in inbounds.get("obj", []):
+            for client in inbound.get("settings", {}).get("clients", []):
+                if client.get("email") == email:
+                    return {"inbound_id": inbound["id"], "client": client}
+        return None
+
     def add_client(self, inbound_id: int, client_email: str, client_uuid: str,
                    limit_gb: int = VPNConfig.DEFAULT_TOTAL_GB,
                    expiry_time: int = VPNConfig.DEFAULT_EXPIRY_TIME) -> dict:
@@ -113,15 +121,13 @@ class XUIClient:
 
         return self._make_request("POST", XUIClientsEndpoints.ADD_CLIENT, json_data=payload)
 
-    def delete_client(self, inbound_id: int, client_uuid: str) -> dict:
+    def delete_client(self, inbound_id: int, email: str) -> dict:
         """
         Удаляет клиента из инбаунда по его UUID.
         """
-        endpoint = f"/panel/api/inbounds/Client/{client_uuid}"  # В некоторых версиях 3x-ui удаление идет через UUID
-        # Если в твоей версии удаление идет по email, эндпоинт будет /panel/api/inbounds/{inbound_id}/delClient/{client_email}
-        # Но актуальный 3x-ui принимает POST запрос на /panel/api/inbounds/delClient/{client_uuid}
+        endpoint = f"{XUIClientsEndpoints.DELETE_CLIENT}/{email}"
 
-        return self._make_request("POST", f"/panel/api/inbounds/delClient/{client_uuid}")
+        return self._make_request("POST", endpoint)
 
     def toggle_client(self, inbound_id: int, client_uuid: str, enable: bool) -> dict:
         """

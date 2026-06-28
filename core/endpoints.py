@@ -6,10 +6,10 @@ class XUINodeEndpoints:
 
 class XUIClientsEndpoints:
     ADD_CLIENT = "/panel/api/clients/add"
-    GET_TRAFFIC = "/panel/api/clients/traffic/{email}"
-    DELETE_CLIENT = "/panel/api/clients/del/{email}"
-    UPDATE_CLIENT = "/panel/api/clients/update/{email}"
-    RESET_TRAFFIC = "/panel/api/clients/resetTraffic/{email}"
+    GET_TRAFFIC = "/panel/api/clients/traffic/"
+    DELETE_CLIENT = "/panel/api/clients/del/"
+    UPDATE_CLIENT = "/panel/api/clients/update/"
+    RESET_TRAFFIC = "/panel/api/clients/resetTraffic/"
 
 class XUISystemEndpoints:
     pass
