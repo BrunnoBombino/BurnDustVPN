@@ -1,14 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
-
 from core.database import init_db, get_db
 from core.services import create_user, verify_password, create_access_token, create_new_user_vpn_key, \
     delete_user_vpn_key
+
 import core.database as db_models
 
 @asynccontextmanager
@@ -34,8 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 @app.get("/")
 def read_root():

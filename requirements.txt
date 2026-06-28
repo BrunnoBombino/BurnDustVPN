@@ -1,3 +1,6 @@
 
 requests
 sqlalchemy
+urllib3
+fastapi
+pydantic

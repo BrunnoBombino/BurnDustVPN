@@ -5,7 +5,6 @@ import uuid
 import secrets
 import bcrypt
 import jwt
-from urllib import parse
 from sqlalchemy.orm import Session
 from core.database import Node, Connection
 from datetime import datetime, timezone, timedelta
@@ -18,7 +17,6 @@ from core.config import VPNConfig, settings
 def get_xui_client(node: Node) -> XUIClient:
     """Фабрика для создания клиентов к конкретной ноде"""
     return XUIClient(host=node.xui_host, token=node.xui_token)
-
 
 def create_new_user_vpn_key(db: Session, user_id: int) -> dict:
     # 1. Поиск ноды (как было)

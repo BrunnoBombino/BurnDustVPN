@@ -1,11 +1,7 @@
 import json
-import uuid
-
 import urllib3
 
-from pathlib import Path
 from requests import RequestException, Session
-
 from core.config import VPNConfig
 from core.endpoints import XUIClientsEndpoints
 
