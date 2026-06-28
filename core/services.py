@@ -6,10 +6,26 @@ import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
 from core.database import User
+from core.xuiclient import XUIClient
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()
 
 SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME" # В будущем вынесем в auth.py
 ALGORITHM = "HS256"
 
+
+def get_xui_client_for_node(node: Node) -> XUIClient:
+    return XUIClient(host=node.xui_host, token=node.xui_token)
 
 def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
     """Вспомогательная функция сборки ссылки на основе модели Ноды"""

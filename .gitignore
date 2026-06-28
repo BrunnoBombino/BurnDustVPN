@@ -5,3 +5,4 @@ database_test.db
 tests.py
 promocodes.json
 .gitignore
+.env
