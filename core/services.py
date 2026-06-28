@@ -1,17 +1,13 @@
-import base64
 import string
-import urllib
 import uuid
 import secrets
 import bcrypt
-import jwt
 from sqlalchemy.orm import Session
 from core.database import Node, Connection
-from datetime import datetime, timezone, timedelta
 from core.database import User
 from core.xuiclient import XUIClient
-from core.endpoints import XUINodeEndpoints, XUIClientsEndpoints, XUIInboundEndpoints
-from core.config import VPNConfig, settings
+from core.endpoints import XUIClientsEndpoints, XUIInboundEndpoints
+from core.config import VPNConfig
 
 
 def get_xui_client(node: Node) -> XUIClient:
@@ -203,10 +199,3 @@ def create_user(db: Session, email: str, password: str) -> User | None:
     db.commit()
     db.refresh(new_user)
     return new_user
-
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(days=30)) -> str:
-    """Создает JWT токен для авторизации на сайте/в боте"""
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

@@ -4,3 +4,6 @@ sqlalchemy
 urllib3
 fastapi
 pydantic
+aiogram
+pydantic-settings
+bcrypt
