@@ -31,9 +31,10 @@ class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)  # Например, "Германия 1"
-    xui_host = Column(String, nullable=False)  # "http://1.2.3.4:2053"
-    xui_token = Column(String, nullable=False)  # Токен панели
+    guid = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)  # Например, "NodeFrance"
+    xui_host = Column(String, nullable=False)
+    xui_token = Column(String, nullable=False)
 
     # Данные для генерации ссылки
     public_ip = Column(String, nullable=False)
@@ -43,12 +44,13 @@ class Node(Base):
     sni = Column(String, default="google.com")
     inbound_id = Column(Integer, nullable=False)
 
-    # Балансировка
-    current_load = Column(Float, default=0.0)
+    # Детальная балансировка и мониторинг
     is_active = Column(Boolean, default=True)
+    cpu_load = Column(Float, default=0.0)    # cpuPct из ответа Мастера
+    mem_load = Column(Float, default=0.0)    # memPct из ответа Мастера
+    latency = Column(Integer, default=0)     # latencyMs из ответа Мастера
 
     connections = relationship("Connection", back_populates="node")
-
 
 class Connection(Base):
     __tablename__ = "connections"

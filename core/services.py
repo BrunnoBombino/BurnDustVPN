@@ -7,6 +7,7 @@ from core.database import Node, Connection
 from datetime import datetime, timezone, timedelta
 from core.database import User
 from core.xuiclient import XUIClient
+from core.endpoints import XUINodeEndpoints
 from core.config import VPNConfig, settings
 
 
@@ -68,25 +69,30 @@ def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         f"#{node.name}-{client_email}"
     )
 
-def update_nodes_from_master(db: Session, master_client) -> None:
+
+def update_nodes_from_master(db: Session, xui_master: XUIClient) -> None:
     """
-    Запрашивает у Мастер-панели актуальное состояние всех нод
-    и обновляет их загруженность в нашей базе данных.
+    Обновляет состояние нод в локальной БД на основе данных от Мастера.
     """
-    response = master_client._make_request("GET", "/panel/api/nodes/list")
+    endpoint = XUINodeEndpoints.NODES_LIST
+    response = xui_master._make_request("GET", endpoint=endpoint)
 
     if not response or not response.get("success"):
-        print("⚠️ Не удалось обновить данные нод с Мастер-сервера")
         return
 
     nodes_list = response.get("obj", [])
 
     for node_data in nodes_list:
-        db_node = db.query(Node).filter(Node.inbound_id == node_data.get("id")).first()
+        # Ищем ноду по GUID (это надежнее, чем ID)
+        db_node = db.query(Node).filter(Node.guid == node_data.get("guid")).first()
+
         if db_node:
-            connections_count = node_data.get("lastMinutesConnections", 0)
-            db_node.current_load = float(connections_count)
-            db_node.is_active = node_data.get("status", True)
+            # Обновляем метрики нагрузки
+            db_node.cpu_load = float(node_data.get("cpuPct", 0))
+            db_node.mem_load = float(node_data.get("memPct", 0))
+            db_node.is_active = (node_data.get("status") == "online")
+            # Можно обновлять latency для аналитики
+            db_node.latency = node_data.get("latencyMs", 0)
 
     db.commit()
 
