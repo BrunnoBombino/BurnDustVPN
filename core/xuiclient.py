@@ -1,4 +1,6 @@
 import json
+import uuid
+
 import urllib3
 
 from pathlib import Path
@@ -68,6 +70,22 @@ class XUIClient:
         res = self._make_request("GET", f"/panel/api/inbounds/get/{inbound_id}")
         return res
 
+    def get_reality_settings(self, inbound_id: int):
+        """Возвращает публичный ключ и short_id для Reality"""
+        inbound = self.get_inbound_status(inbound_id)
+        if not inbound or not inbound.get("success"):
+            return None
+
+        # Разбираем структуру настроек Reality
+        stream_settings = inbound.get("obj", {}).get("streamSettings", {})
+        reality_settings = stream_settings.get("realitySettings", {})
+
+        return {
+            "public_key": reality_settings.get("publicKey"),
+            "short_id": reality_settings.get("shortIds", [""])[0],  # берем первый доступный
+            "sni": stream_settings.get("realitySettings", {}).get("serverNames", ["google.com"])[0]
+        }
+
     @staticmethod
     def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         """
@@ -89,7 +107,7 @@ class XUIClient:
                     return {"inbound_id": inbound["id"], "client": client}
         return None
 
-    def add_client(self, client_email: str, client_uuid: str,
+    def add_client(self, subId: str, client_email: str, client_uuid: str,
                    limit_gb: int = VPNConfig.DEFAULT_TOTAL_GB,
                    expiry_time: int = VPNConfig.DEFAULT_EXPIRY_TIME, inbound_ids: list = None) -> dict:
 
@@ -102,11 +120,13 @@ class XUIClient:
             # но лучше передавать готовый список из сервиса
             return {"success": False, "msg": "Список inbound_ids обязателен"}
 
+
         payload = {
             "client": {
                 "id": client_uuid,
                 "email": client_email,
                 "enable": True,
+                "subId": subId,
                 "totalGB": limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0,
                 "expiryTime": expiry_time,
                 "limitIp": 0,

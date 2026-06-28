@@ -59,6 +59,7 @@ class Connection(Base):
 
     client_uuid = Column(String, unique=True, default=lambda: str(uuid.uuid4()), nullable=False)
     client_email = Column(String, nullable=False)
+    sub_id = Column(String, nullable=False)
 
     is_enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

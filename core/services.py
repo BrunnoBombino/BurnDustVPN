@@ -1,7 +1,11 @@
+import base64
+import string
+import urllib
 import uuid
 import secrets
 import bcrypt
 import jwt
+from urllib import parse
 from sqlalchemy.orm import Session
 from core.database import Node, Connection
 from datetime import datetime, timezone, timedelta
@@ -15,45 +19,56 @@ def get_xui_client(node: Node) -> XUIClient:
     """Фабрика для создания клиентов к конкретной ноде"""
     return XUIClient(host=node.xui_host, token=node.xui_token)
 
+
 def create_new_user_vpn_key(db: Session, user_id: int) -> dict:
+    # 1. Поиск ноды (как было)
     best_node = db.query(Node).filter(Node.is_active == True).order_by(Node.cpu_load.asc()).first()
     if not best_node:
         return {"success": False, "msg": "Нет доступных нод"}
 
     client_uuid = str(uuid.uuid4())
-    client_email = f"user_{user_id}_{secrets.token_hex(3)}"
+    client_email = f"user_{user_id}_{secrets.token_hex(4)}"
+    # Генерируем sub_id заранее, чтобы сохранить в БД сразу
+    client_sub_id = generate_sub_id()
 
     node_client = XUIClient(host=best_node.xui_host, token=best_node.xui_token)
-
-    # Автоматический поиск инбаундов
     inbound_ids = get_vless_reality_inbounds(node_client)
+
     if not inbound_ids:
         return {"success": False, "msg": "На ноде нет активных VLESS-Reality инбаундов"}
 
-    # Вызываем ОДИН раз для всего списка инбаундов
-    node_client.add_client(
+    # 2. Попытка создания на ноде
+    res = node_client.add_client(
         client_email=client_email,
         client_uuid=client_uuid,
-        inbound_ids=inbound_ids
+        inbound_ids=inbound_ids,
+        subId=client_sub_id  # Передаем наш сгенерированный ID
     )
 
-    # Сохраняем в БД
+    if not res.get("success"):
+        return {"success": False, "msg": "Ошибка API ноды"}
+
+    # 3. Сохранение в БД с уже имеющимся sub_id
     try:
         new_conn = Connection(
             user_id=user_id,
             node_id=best_node.id,
             client_uuid=client_uuid,
-            client_email=client_email
+            client_email=client_email,
+            sub_id=client_sub_id  # Сохраняем в таблицу
         )
         db.add(new_conn)
         db.commit()
     except Exception as e:
         db.rollback()
-        # Компенсация: удаление клиента с ноды
-        node_client._make_request("POST", f"{XUIClientsEndpoints.DELETE_CLIENT}/{client_email}")
+        node_client.delete_client(client_email)
         return {"success": False, "msg": f"Database error: {str(e)}"}
 
-    return {"success": True, "link": generate_vless_link(best_node, client_uuid, client_email)}
+    # 4. Формируем ссылку для пользователя
+    # Теперь мы даже не опрашиваем API, мы берем данные из только что созданного объекта
+    link = f"http://{best_node.public_ip}:{VPNConfig.SUB_PORT}/sub/{client_sub_id}"
+
+    return {"success": True, "link": link}
 
 def delete_user_vpn_key(db: Session, connection_id: int) -> dict:
     conn = db.query(Connection).filter(Connection.id == connection_id).first()
@@ -83,6 +98,30 @@ def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         f"&sni={node.sni}&fp=chrome&pbk={node.public_key}&sid={node.short_id}"
         f"#{node.name}-{client_email}"
     )
+
+def generate_sub_id():
+    # Генерируем случайную строку из 16 строчных латинских букв и цифр
+    alphabet = string.ascii_lowercase + string.digits
+    client_sub_id = "".join(secrets.choice(alphabet) for _ in range(16))
+    return client_sub_id
+
+def get_user_subscription_link(db: Session, user_id: int) -> list:
+    """
+    Возвращает список URL подписок для всех активных подключений пользователя.
+    """
+    connections = db.query(Connection).filter(
+        Connection.user_id == user_id,
+        Connection.is_enabled == True
+    ).all()
+
+    links = []
+    for conn in connections:
+        # Теперь мы просто формируем URL с sub_id, который ты сохранил при создании
+        node = conn.node
+        link = f"http://{node.public_ip}:{VPNConfig.SUB_PORT}/sub/{conn.sub_id}"
+        links.append(link)
+
+    return links
 
 def get_vless_reality_inbounds(node_client: XUIClient) -> list:
     """Опрашивает ноду и возвращает список всех VLESS-Reality ID."""
@@ -141,26 +180,6 @@ def update_nodes_from_master(db, xui_master):
             existing_node.is_active = node_info["enable"]
 
     db.commit()
-
-def get_user_vless_links(db: Session, user_id: int) -> list:
-    """
-    Возвращает список всех активных ссылок (конфигов) пользователя,
-    просто собирая их из данных нашей БД (без запросов к 3x-ui).
-    """
-    connections = db.query(Connection).filter(
-        Connection.user_id == user_id,
-        Connection.is_enabled == True
-    ).all()
-
-    links = []
-    for conn in connections:
-        # Благодаря SQLAlchemy relationship, у conn есть свойство node
-        node = conn.node
-        if node:
-            link = generate_vless_link(node, conn.client_uuid, conn.client_email)
-            links.append(link)
-
-    return links
 
 def hash_password(password: str) -> str:
     """Превращает пароль в безопасный хэш"""

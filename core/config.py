@@ -16,3 +16,4 @@ class VPNConfig:
     DEFAULT_LIMIT_IP = 1
     DEFAULT_EXPIRY_TIME = 0
     DEFAULT_TOTAL_GB = 0
+    SUB_PORT = 2096  # Порт для ссылок подписки
