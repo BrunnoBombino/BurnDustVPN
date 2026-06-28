@@ -7,14 +7,13 @@ from core.database import Node, Connection
 from datetime import datetime, timezone, timedelta
 from core.database import User
 from core.xuiclient import XUIClient
-from core.endpoints import XUINodeEndpoints, XUIClientsEndpoints
+from core.endpoints import XUINodeEndpoints, XUIClientsEndpoints, XUIInboundEndpoints
 from core.config import VPNConfig, settings
 
 
 def get_xui_client(node: Node) -> XUIClient:
     """Фабрика для создания клиентов к конкретной ноде"""
     return XUIClient(host=node.xui_host, token=node.xui_token)
-
 
 def create_new_user_vpn_key(db: Session, user_id: int) -> dict:
     best_node = db.query(Node).filter(Node.is_active == True).order_by(Node.cpu_load.asc()).first()
@@ -56,7 +55,6 @@ def create_new_user_vpn_key(db: Session, user_id: int) -> dict:
 
     return {"success": True, "link": generate_vless_link(best_node, client_uuid, client_email)}
 
-
 def delete_user_vpn_key(db: Session, connection_id: int) -> dict:
     conn = db.query(Connection).filter(Connection.id == connection_id).first()
     if not conn:
@@ -77,7 +75,6 @@ def delete_user_vpn_key(db: Session, connection_id: int) -> dict:
 
     return {"success": False, "msg": f"Ошибка удаления: {response.get('msg', 'Unknown error')}"}
 
-
 def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
     """Вспомогательная функция сборки ссылки на основе модели Ноды"""
     return (
@@ -87,10 +84,10 @@ def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         f"#{node.name}-{client_email}"
     )
 
-
 def get_vless_reality_inbounds(node_client: XUIClient) -> list:
     """Опрашивает ноду и возвращает список всех VLESS-Reality ID."""
-    response = node_client._make_request("GET", "/panel/api/inbounds/list")
+    endpoint = XUIInboundEndpoints.INBOUNDS_LIST
+    response = node_client._make_request("GET", endpoint)
     inbounds = response.get("obj", [])
 
     target_ids = []
@@ -102,7 +99,6 @@ def get_vless_reality_inbounds(node_client: XUIClient) -> list:
             target_ids.append(inbound["id"])
 
     return target_ids
-
 
 def update_nodes_from_master(db, xui_master):
     response = xui_master._make_request("GET", "/panel/api/nodes/list")
@@ -196,4 +192,4 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(days=30
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

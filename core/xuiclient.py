@@ -68,6 +68,7 @@ class XUIClient:
         res = self._make_request("GET", f"/panel/api/inbounds/get/{inbound_id}")
         return res
 
+    @staticmethod
     def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
         """
         Моментально собирает vless ссылку на основе данных из нашей БД нод.
