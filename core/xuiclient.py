@@ -88,36 +88,34 @@ class XUIClient:
                     return {"inbound_id": inbound["id"], "client": client}
         return None
 
-    def add_client(self, inbound_id: int, client_email: str, client_uuid: str,
+    def add_client(self, client_email: str, client_uuid: str,
                    limit_gb: int = VPNConfig.DEFAULT_TOTAL_GB,
-                   expiry_time: int = VPNConfig.DEFAULT_EXPIRY_TIME) -> dict:
+                   expiry_time: int = VPNConfig.DEFAULT_EXPIRY_TIME, inbound_ids: list = None) -> dict:
 
-        # 1. Получаем информацию об инбаунде для проверки протокола
-        inbound = self.get_inbound_by_id(inbound_id)
-        if not inbound:
-            return {"success": False, "msg": f"Inbound {inbound_id} not found"}
+        """
+                Добавляет клиента глобально, привязывая его к списку inbound_ids.
+                """
+        # Если список ID не передан, попробуем добавить во все доступные VLESS-Reality
+        if not inbound_ids:
+            # Тут можно вызвать логику поиска, если нужно,
+            # но лучше передавать готовый список из сервиса
+            return {"success": False, "msg": "Список inbound_ids обязателен"}
 
-        # 2. Определяем flow: используем дефолтный, если это VLESS
-        protocol = inbound.get("protocol")
-        flow = VPNConfig.DEFAULT_FLOW if protocol == "vless" else ""
-
-        # 3. Конвертация лимита (ГБ -> Байты)
-        total_gb_bytes = limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0
-
-        # 4. Формируем тело запроса
         payload = {
             "client": {
                 "id": client_uuid,
                 "email": client_email,
                 "enable": True,
-                "totalGB": total_gb_bytes,
+                "totalGB": limit_gb * 1024 * 1024 * 1024 if limit_gb > 0 else 0,
                 "expiryTime": expiry_time,
-                "tgId": 0,
-                "limitIp": VPNConfig.DEFAULT_LIMIT_IP,
-                "flow": flow
+                "limitIp": 0,
+                "flow": ""
             },
-            "inboundIds": [inbound_id]
+            "inboundIds": inbound_ids  # Вот тут вся магия "один клиент - много портов"
         }
+
+        # Эндпоинт для глобального добавления клиента в 3x-ui
+        return self._make_request("POST", "/panel/api/clients/add", json_data=payload)
 
         return self._make_request("POST", XUIClientsEndpoints.ADD_CLIENT, json_data=payload)
 

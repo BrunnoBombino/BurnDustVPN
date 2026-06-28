@@ -31,13 +31,12 @@ def create_new_user_vpn_key(db: Session, user_id: int) -> dict:
     if not inbound_ids:
         return {"success": False, "msg": "На ноде нет активных VLESS-Reality инбаундов"}
 
-    # Добавление клиента во все найденные инбаунды
-    for iid in inbound_ids:
-        node_client.add_client(
-            inbound_id=iid,
-            client_email=client_email,
-            client_uuid=client_uuid
-        )
+    # Вызываем ОДИН раз для всего списка инбаундов
+    node_client.add_client(
+        client_email=client_email,
+        client_uuid=client_uuid,
+        inbound_ids=inbound_ids
+    )
 
     # Сохраняем в БД
     try:

@@ -56,7 +56,6 @@ class Connection(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     node_id = Column(Integer, ForeignKey("nodes.id"), nullable=False)
-    inbound_id = Column(Integer)
 
     client_uuid = Column(String, unique=True, default=lambda: str(uuid.uuid4()), nullable=False)
     client_email = Column(String, nullable=False)
