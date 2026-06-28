@@ -1,29 +1,64 @@
 import uuid
 import secrets
-from sqlalchemy.orm import Session
-from core.database import Node, Connection
 import bcrypt
 import jwt
+from sqlalchemy.orm import Session
+from core.database import Node, Connection
 from datetime import datetime, timezone, timedelta
 from core.database import User
 from core.xuiclient import XUIClient
-from pydantic_settings import BaseSettings
+from core.config import VPNConfig, settings
 
 
-class Settings(BaseSettings):
-    SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-
-    class Config:
-        env_file = ".env"
-
-
-settings = Settings()
-
-
-def get_xui_client_for_node(node: Node) -> XUIClient:
+def get_xui_client(node: Node) -> XUIClient:
+    """Фабрика для создания клиентов к конкретной ноде"""
     return XUIClient(host=node.xui_host, token=node.xui_token)
 
+
+def create_new_user_vpn_key(db: Session, user_id: int, master_node_id: int = 1) -> dict:
+    master_node = db.query(Node).filter(Node.id == master_node_id).first()
+    if not master_node:
+        return {"success": False, "msg": "Мастер-сервер не найден"}
+
+    xui_master = get_xui_client(master_node)
+    update_nodes_from_master(db, xui_master)
+
+    best_node = db.query(Node).filter(Node.is_active == True).order_by(Node.current_load.asc()).first()
+    if not best_node:
+        return {"success": False, "msg": "Нет доступных нод"}
+
+    client_uuid = str(uuid.uuid4())
+    client_email = f"user_{user_id}_{secrets.token_hex(3)}"
+
+    # Используем клиент целевой ноды
+    target_xui = get_xui_client(best_node)
+
+    # Пытаемся создать
+    xui_response = target_xui.add_client(
+        inbound_id=best_node.inbound_id,
+        client_email=client_email,
+        client_uuid=client_uuid
+    )
+
+    if not xui_response.get("success"):
+        return {"success": False, "msg": f"API Error: {xui_response.get('msg')}"}
+
+    # Безопасная запись в БД
+    try:
+        new_conn = Connection(
+            user_id=user_id,
+            node_id=best_node.id,
+            client_uuid=client_uuid,
+            client_email=client_email
+        )
+        db.add(new_conn)
+        db.commit()
+    except Exception as e:
+        db.rollback()  # Откатываем, если БД упала
+        # В идеале здесь вызвать target_xui.delete_client(client_email) для компенсации
+        return {"success": False, "msg": "Database commit failed"}
+
+    return {"success": True, "link": generate_vless_link(best_node, client_uuid, client_email)}
 def generate_vless_link(node: Node, client_uuid: str, client_email: str) -> str:
     """Вспомогательная функция сборки ссылки на основе модели Ноды"""
     return (
@@ -54,52 +89,6 @@ def update_nodes_from_master(db: Session, master_client) -> None:
             db_node.is_active = node_data.get("status", True)
 
     db.commit()
-
-def create_new_user_vpn_key(db: Session, user_id: int, master_node_id: int = 1) -> dict:
-    """
-    Логика создания нового ключа: опрос мастера -> выбор свободной ноды -> создание в 3x-ui
-    """
-    from core.xuiclient import XUIClient  # Импорт внутри функции во избежание циклической зависимости
-
-    master_node = db.query(Node).filter(Node.id == master_node_id).first()
-    if not master_node:
-        return {"success": False, "msg": "Мастер-сервер не найден в локальной БД"}
-
-    xui_master = XUIClient(host=master_node.xui_host, token=master_node.xui_token)
-
-    # Обновляем состояние нод прямо перед выбором
-    update_nodes_from_master(db, xui_master)
-
-    # Выбираем самую свободную живую ноду
-    best_node = db.query(Node).filter(Node.is_active == True).order_by(Node.current_load.asc()).first()
-    if not best_node:
-        return {"success": False, "msg": "Нет доступных серверов для подключения"}
-
-    client_uuid = str(uuid.uuid4())
-    client_email = f"user_{user_id}_{secrets.token_hex(3)}"
-
-    # Добавляем клиента на Мастер (панель сама пробросит его на нужную ноду)
-    xui_response = xui_master.add_client(
-        inbound_id=best_node.inbound_id,
-        client_email=client_email,
-        client_uuid=client_uuid
-    )
-
-    if not xui_response.get("success"):
-        return {"success": False, "msg": f"Ошибка 3x-ui: {xui_response.get('msg')}"}
-
-    # Сохраняем в свою БД
-    new_conn = Connection(
-        user_id=user_id,
-        node_id=best_node.id,
-        client_uuid=client_uuid,
-        client_email=client_email
-    )
-    db.add(new_conn)
-    db.commit()
-
-    vpn_link = generate_vless_link(best_node, client_uuid, client_email)
-    return {"success": True, "link": vpn_link}
 
 def get_user_vless_links(db: Session, user_id: int) -> list:
     """
