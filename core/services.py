@@ -2,6 +2,8 @@ import string
 import uuid
 import secrets
 import bcrypt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from core.database import Node, Connection
 from core.database import User
@@ -184,18 +186,24 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверяет, подходит ли пароль к хэшу"""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-def create_user(db: Session, email: str, password: str) -> User | None:
-    """Создает нового пользователя, если email свободен"""
-    # Проверяем, нет ли уже такого email в БД
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
+
+async def create_user(db: AsyncSession, email: str, password: str, login: str, tg_id: int) -> User | None:
+    """Создает нового пользователя асинхронно"""
+
+    # Асинхронный поиск пользователя
+    result = await db.execute(select(User).where(User.email == email))
+    if result.scalar_one_or_none():
         return None
 
+    # Создание объекта
     new_user = User(
         email=email,
-        password_hash=hash_password(password)
+        password=hash_password(password),  # Используем твою функцию
+        username=login,
+        telegram_id=tg_id
     )
+
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await db.commit()  # Асинхронный коммит
+    await db.refresh(new_user)
     return new_user

@@ -1,6 +1,5 @@
-from sqlalchemy import select
-from core.database import User
-from sqlalchemy.ext.asyncio import async_session
+from sqlalchemy import select, or_
+from core.database import User, async_session
 from sqlalchemy import update
 
 
@@ -20,9 +19,16 @@ async def bind_tg_to_user(tg_id: int, token: str) -> bool:
         await session.commit()
         return True
 
-    
+
 async def get_user_by_tg_id(tg_id: int):
     """Возвращает пользователя из БД или None"""
     async with async_session() as session:
         result = await session.execute(select(User).where(User.telegram_id == tg_id))
         return result.scalar_one_or_none()
+
+async def check_user_exists(login=None, email=None):
+    async with async_session() as session:
+        query = select(User).where(or_(User.username == login, User.email == email))
+        result = await session.execute(query)
+        return result.scalar_one_or_none() is not None
+

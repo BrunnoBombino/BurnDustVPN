@@ -1,12 +1,17 @@
-from pydantic_settings import BaseSettings
+import os
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Получаем путь к папке, где лежит config.py
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Settings(BaseSettings):
     SECRET_KEY: str
-    ALGORITHM: str = "HS256"
+    DATABASE_URL: str
 
-    class Config:
-        env_file = ".env"
+    # Явно указываем путь к .env в корне проекта
+    model_config = SettingsConfigDict(env_file=os.path.join(BASE_DIR, ".env"))
 
 
 settings = Settings()

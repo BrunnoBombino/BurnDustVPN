@@ -1,16 +1,34 @@
+import os
 from datetime import datetime, timezone
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Float, BigInteger
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
-# 1. Настройка подключения
-# Для тестов используем SQLite (файл database_test.db создастся в корне)
-DATABASE_URL = "sqlite:///./database_test.db"
+# Получаем путь к корню проекта (на уровень выше папки core)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Аргумент check_same_thread нужен только для SQLite
+# Формируем полный путь к базе данных
+DB_PATH = os.path.join(BASE_DIR, "database_test.db")
+
+# 1. Синхронный движок (для создания таблиц через Base.metadata.create_all)
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# 2. Асинхронный движок (ДЛЯ БОТА!)
+ASYNC_DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False)
+
+# Фабрика сессий
+async_session = async_sessionmaker(
+    async_engine,
+    expire_on_commit=False,
+    class_=AsyncSession
+)
+
 Base = declarative_base()
+
 
 
 # 2. Определение моделей (Таблиц)
@@ -21,6 +39,8 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     telegram_id = Column(BigInteger, unique=True, nullable=True)  # ID юзера в ТГ
     username = Column(String, nullable=True)
+    email = Column(String, nullable=False)
+    password = Column(String, nullable=False)
 
     # Токен для привязки аккаунта, если юзер пришел с сайта/админки
     activation_token = Column(String, unique=True, nullable=True)
